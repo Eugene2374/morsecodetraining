@@ -1,0 +1,325 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Morse Code</title>
+</head>
+<body>
+    <style>
+        *{
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body{
+            overflow: hidden;
+        }
+        canvas{
+            background: #333;
+        }
+    </style>
+    <canvas id="canvas1"></canvas>
+    <script>
+        class numberBox {
+            constructor(x,change,symbol){
+                this.x = x
+                this.change=change
+                this.symbol=symbol
+            }
+            
+            draw(){
+                this.#drawSymbolIndicator()
+                this.#drawButton(40,"up")
+                this.#drawValueShower()
+                this.#drawButton(180,"down")
+            }
+            
+            #drawButton(y,attribute){
+                ctx.fillStyle="#ccc"
+                ctx.fillRect(this.x,y,canvas.width*1/20,30)
+                ctx.beginPath()
+                if (attribute=="up"){
+                    ctx.moveTo(this.x+canvas.width/40,y+10)
+                    ctx.lineTo(this.x+canvas.width/80,y+20)
+                    ctx.lineTo(this.x+canvas.width*3/80,y+20)
+                }
+                else if(attribute=="down"){
+                    ctx.moveTo(this.x+canvas.width/40,y+20)
+                    ctx.lineTo(this.x+canvas.width/80,y+10)
+                    ctx.lineTo(this.x+canvas.width*3/80,y+10)
+                }
+                ctx.closePath()
+                ctx.fillStyle="#222"
+                ctx.fill()
+            }
+            
+            #drawValueShower(){
+                ctx.fillStyle="white"
+                ctx.fillRect(this.x,80,canvas.width*1/20,90)
+                ctx.font="19px Arial"
+                ctx.fillStyle="black"
+                ctx.textAlign="center"
+                ctx.fillText(this.change,this.x+canvas.width*1/40,80+(90+19)/2)
+            }    
+            
+            #drawSymbolIndicator(){
+                ctx.fillStyle="#333"
+                ctx.fillRect(this.x,10,canvas.width*1/20,25)
+                ctx.font="19px Arial"
+                ctx.fillStyle="White"
+                ctx.textAlign="center"
+                ctx.fillText(this.symbol,this.x+canvas.width*1/40,10+(17+19)/2)
+                    
+            }
+        }
+
+        const canvas = document.getElementById("canvas1");
+        const ctx = canvas.getContext("2d")
+        const AudCtx= new AudioContext();
+        let keyState= false
+        let proof = false
+        
+        total = 1
+        counter=0
+        speed=1
+        setUp()
+        Listners()
+        
+        mouse={
+            x:0,
+            y:0
+        }
+
+        arr=[
+            //A
+            [0,1],
+            //B
+            [1,0,0,0],
+            //C
+            [1,0,1,0],
+            //D
+            [1,0,0],
+            //E
+            [0],
+            //F
+            [0,0,1,0],
+            //G
+            [1,1,0],
+            //H
+            [0,0,0,0],
+            //I
+            [0,0],
+            //J
+            [0,1,1,1],
+            //K
+            [1,0,1],
+            //L
+            [0,1,0,0],
+            //M
+            [1,1],
+            //N
+            [1,0],
+            //O
+            [1,1,1],
+            //P
+            [0,1,1,0],
+            //Q
+            [1,1,0,1],
+            //R
+            [0,1,0],
+            //S
+            [0,0,0],
+            //T
+            [1],
+            //U
+            [0,0,1],
+            //V
+            [0,0,0,1],
+            //W
+            [0,1,1],
+            //X
+            [1,0,0,1],
+            //Y
+            [1,0,1,1],
+            //Z
+            [1,1,0,0]
+        ]
+        
+        function sound(duration){
+            let osc= AudCtx.createOscillator();
+            let gainN = AudCtx.createGain();
+            gainN.gain.setValueAtTime(10,AudCtx.currentTime+0.05)
+            gainN.gain.linearRampToValueAtTime(0.2,AudCtx.currentTime+duration-0.1)
+            gainN.gain.linearRampToValueAtTime(0,AudCtx.currentTime+duration)
+            osc.start(AudCtx.currentTime)
+            osc.stop(AudCtx.currentTime+duration)
+            osc.connect(gainN)
+            gainN.connect(AudCtx.destination)
+        }
+        
+        function long(){
+            sound(0.45)
+        }
+        
+        function short(){
+            sound(0.25)
+        }
+        
+        function dataCheck(d){
+            if (d==0){
+                short()
+            }
+            else if(d==1){
+                long()
+            }
+            else{
+                console.log("Number not in range:",d)
+            }
+        }
+        
+        function ring(chart){
+            ringing=true
+            for (let i=0;i<arr[chart].length;i++){
+                setTimeout(function(){dataCheck(arr[chart][i])},(300*i+50*arr[chart][i-1])/speed)
+            }
+            setTimeout(function(){ringing=false},(300*arr[chart].length+50*arr[chart][arr[chart].length-1])/speed)
+        }
+        
+        function Listners(){
+            addEventListener("keydown",answerCheck)
+            addEventListener("keyup",allow)
+            addEventListener("resize",setUp)
+            addEventListener("load",createQuestion)
+            addEventListener("mousedown",MouseClick)
+        }
+        
+        function getCode(event){
+            value = event-65
+            return value
+        }
+        
+        function allow(){
+            keyState=false
+        }
+        
+        function setUp(){
+            canvas.height=window.innerHeight
+            canvas.width=window.innerWidth
+            ctx.clearRect(0,0,canvas.width,canvas.height)
+            ctx.fillStyle="HSL(10,60%,70%)"
+            ctx.fillRect(canvas.width*(1-19/80),5,canvas.width*9/40,215)
+            counterBox= new numberBox(canvas.width*(1-6/40),counter,"C")
+            speedBox= new numberBox(canvas.width*(1-3/40),speed,"S")
+            totalBox= new numberBox(canvas.width*(1-9/40),total,"Q")
+            counterBox.draw()
+            speedBox.draw()
+            totalBox.draw()
+            mid=Math.min(canvas.height,canvas.width)
+            ctx.font=canvas.height*0.1+"px Arial"
+            ctx.fillStyle="#444"
+            ctx.textAlign="center"
+            ctx.fillText("Listen to the morse code and",canvas.width/2,canvas.height*0.425)
+            ctx.fillText("press the corresponding key",canvas.width/2,canvas.height*0.575)
+            ctx.font=canvas.height*0.05+"px Arial"
+            ctx.fillText("Press spacebar to relisten",canvas.width/2,canvas.height*0.7)
+        }
+        
+        function createQuestion(){
+            question=Math.floor(Math.random()*26)
+            ring(question)
+        }
+        
+        function relisten(){
+            if (!ringing){
+                ring(question)
+            }
+        }
+        
+        function answerCheck(event){
+            if (!keyState){
+                answer=getCode(event.keyCode)
+                if (answer>=0 && answer<=25 && !proof){
+                    proof=true
+                    total++
+                    answer==question? correct=true:correct=false
+                    correct? Correct():Wrong()
+                    setTimeout(function(){createQuestion();proof=false},1000)
+                }
+                else if(answer==-33){
+                    relisten()
+                }
+            }
+            keyState=true
+        }
+        
+        function MouseClick(event){
+            mouse.x=event.x/canvas.width
+            mouse.y=event.y
+            if (!proof){
+                if(((mouse.x>=(1-9/40)&&mouse.x<=(1-7/40))||(mouse.x>=(1-6/40)&& mouse.x<=(1-4/40))) && mouse.y>=40  && mouse.y<=210){
+                    reset()
+                }
+                else if((mouse.x>=(1-3/40)&& mouse.x<=(1-1/40))){
+                    if (mouse.y>=40 && mouse.y<=70 && speed < 1){
+                        speed*=2
+                    }
+                    else if (mouse.y>=180 && mouse.y<=210 && speed != 0.25 && speed < 1.5){
+                        speed/=2
+                    }
+                    else if (mouse.y>=40 && mouse.y<=70 && speed == 1){
+                        speed+=0.5
+                    }
+                    else if (mouse.y>=180 && mouse.y<=210 && speed == 1.5){
+                        speed-=0.5
+                    }
+                    setUp()
+                }
+            }
+        }
+        
+        function Correct(){
+            counter++
+            ctx.fillStyle="RGBA(0,255,0,70%)"
+            ctx.fillRect(0,0,canvas.width,canvas.height)
+            ctx.save()
+            ctx.fillStyle="White"
+            ctx.translate(canvas.width*0.5,canvas.height*0.5)
+            ctx.arc(0,0.25*mid,20,0,2*Math.PI)
+            ctx.rotate(-0.76)
+            ctx.fillRect(-0.275*mid,-0.15*mid,0.15*mid,0.2505*mid)
+            ctx.rotate(Math.PI/2)
+            ctx.fillRect(0.1*mid,-0.475*mid,0.15*mid,0.75*mid)
+            ctx.restore()
+            setTimeout(function(){ctx.clearRect(0,0,canvas.width,canvas.height);setUp()},500)
+        }
+        
+        function Wrong(){
+            ctx.fillStyle="RGBA(255,0,0,70%)"
+            ctx.fillRect(0,0,canvas.width,canvas.height)
+            ctx.save()
+            ctx.translate(canvas.width*0.5,canvas.height*0.4)
+            ctx.fillStyle="White"
+            ctx.rotate(-Math.PI*0.25)
+            ctx.fillRect(-0.075*mid,-mid*0.35,0.15*mid,mid*0.7)
+            ctx.rotate(-Math.PI/2)
+            ctx.fillRect(-0.075*mid,-mid*0.35,0.15*mid,mid*0.7)
+            ctx.restore()
+            ctx.font=canvas.height*0.1+"px Arial"
+            ctx.fillStyle="White"
+            ctx.textAlign="center"
+            ctx.fillText("The answer is "+String.fromCharCode(question+65),canvas.width/2,canvas.height*0.85)
+            setTimeout(function(){ctx.clearRect(0,0,canvas.width,canvas.height);setUp()},500)
+        }
+        
+        function reset(){
+            if(!proof){
+                total=1
+                counter=0
+                createQuestion()
+                setUp()
+            }
+        }
+        </script>
+</body>
+</html>
